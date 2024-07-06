@@ -25,9 +25,11 @@ void process_input(GLFWwindow *window);
 int
 main(void)
 {
-    unsigned int VBO;
-    unsigned int VAO;
-    unsigned int EBO;
+    unsigned int VBO_A;
+    unsigned int VAO_A;
+
+    unsigned int VBO_B;
+    unsigned int VAO_B;
 
     unsigned int vertex_shader;
 
@@ -42,17 +44,16 @@ main(void)
     int success;
     char info_log[512];
 
-    float vertices[] = {
+    float verts_A[] = {
         -0.50f, -0.5f, 0.0f,
         -0.25f,  0.5f, 0.0f,
          0.00f, -0.5f, 0.0f,
-         0.25f,  0.5f, 0.0f,
-         0.50f, -0.5f, 0.0f
     };
 
-    unsigned int indices[] = {
-        0, 1, 2,
-        2, 3, 4
+    float verts_B[] = {
+         0.00f, -0.5f, 0.0f,
+         0.25f,  0.5f, 0.0f,
+         0.50f, -0.5f, 0.0f
     };
 
     const char *vertex_shader_source = "#version 330 core\n"
@@ -109,8 +110,8 @@ main(void)
      * rather than having to rebind everything related to the VBO and its
      * attributes.
      */
-    glGenVertexArrays(1, &VAO);
-    glBindVertexArray(VAO);
+    glGenVertexArrays(1, &VAO_A);
+    glBindVertexArray(VAO_A);
 
     /* === Vertex Buffer Object === */
 
@@ -121,29 +122,11 @@ main(void)
      */
 
     /* We generate the ID for and bind to the new buffer here */
-    glGenBuffers(1, &VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glGenBuffers(1, &VBO_A);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO_A);
 
     /* We then copy the vertex data to the VBO */
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-    /* === Element Buffer Object === */
-
-    /*
-     * An EBO stores the indices of vertices that OpenGL uses to decide which to
-     * draw. These are used for indexed drawing, a technique that allows us to
-     * reduce the number of vertices to draw by combining shared vertices into a
-     * single index.
-     *
-     * If a VAO is bound while binding an EBO, the last EBO to be
-     * bound is recorded in the VAO as well. Make sure not to unbind the EBO
-     * before unbinding the VAO
-     */
-
-    glGenBuffers(1, &EBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices,
-                 GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(verts_A), verts_A, GL_STATIC_DRAW);
 
     /* === Vertex Attributes === */
 
@@ -162,6 +145,23 @@ main(void)
      * (void *) 0 is the offset where the data begins from the start of the
      * buffer
      */
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),
+                          (void *)0);
+    glEnableVertexAttribArray(0);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+
+    /* Do the same for the second triangle */
+
+    glGenVertexArrays(1, &VAO_B);
+    glBindVertexArray(VAO_B);
+
+    glGenBuffers(1, &VBO_B);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO_B);
+
+    glBufferData(GL_ARRAY_BUFFER, sizeof(verts_B), verts_B, GL_STATIC_DRAW);
+
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),
                           (void *)0);
     glEnableVertexAttribArray(0);
@@ -259,8 +259,6 @@ main(void)
     glDeleteShader(fs_orange);
     glDeleteShader(fs_yellow);
 
-    /* glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); */
-
     while (!glfwWindowShouldClose(window)) {
         process_input(window);
 
@@ -268,27 +266,25 @@ main(void)
         glClear(GL_COLOR_BUFFER_BIT);
 
         glUseProgram(sp_orange);
-        glBindVertexArray(VAO);
-
-        /* 
-         * The type of primitive to draw, the starting index, and the number of
-         * vertices to draw
-         */
-        // glDrawArrays(GL_TRIANGLES, 0, 3);
-        
-        /* When drawing by indices rather than by vertices, use the EBO */
-        glDrawElements(GL_TRIANGLES, 5, GL_UNSIGNED_INT, 0);
+        glBindVertexArray(VAO_A);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
 
         glUseProgram(sp_yellow);
-        glDrawElements(GL_TRIANGLES, 2, GL_UNSIGNED_INT, (void *)2);
+        glBindVertexArray(VAO_B);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
+
+        glBindVertexArray(0);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
 
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteBuffers(1, &VBO);
-    glDeleteBuffers(1, &EBO);
+    glDeleteVertexArrays(1, &VAO_A);
+    glDeleteBuffers(1, &VBO_A);
+
+    glDeleteVertexArrays(1, &VAO_B);
+    glDeleteBuffers(1, &VBO_B);
+
     glDeleteProgram(sp_orange);
     glDeleteProgram(sp_yellow);
 
