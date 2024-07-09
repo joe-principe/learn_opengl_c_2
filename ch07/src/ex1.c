@@ -37,7 +37,7 @@ main(void)
     shader sh;
 
     const char *vert_shader_path = "shaders/shader.vs";
-    const char *frag_shader_path = "shaders/shader.fs";
+    const char *frag_shader_path = "shaders/ex1.fs";
 
     GLFWwindow *window = NULL;
 
@@ -58,8 +58,8 @@ main(void)
         /* x      y     z     r     g     b     u     v */
          0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, /* TR */
          0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, /* BR */
-        -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, /* BL */
-        -0.5f,  0.5f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f  /* TL */
+        -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, /* TL */
+        -0.5f,  0.5f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f  /* BL */
     };
 
     unsigned int indices[] = {
@@ -128,8 +128,6 @@ main(void)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    stbi_set_flip_vertically_on_load(true);
 
     wall_texture_data = stbi_load(wall_texture_path, &width, &height,
                                   &num_channels, 0);

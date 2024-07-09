@@ -27,6 +27,8 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height);
  */
 void process_input(GLFWwindow *window);
 
+float mix_amt = 0.2f;
+
 int
 main(void)
 {
@@ -37,7 +39,7 @@ main(void)
     shader sh;
 
     const char *vert_shader_path = "shaders/shader.vs";
-    const char *frag_shader_path = "shaders/shader.fs";
+    const char *frag_shader_path = "shaders/ex4.fs";
 
     GLFWwindow *window = NULL;
 
@@ -53,6 +55,8 @@ main(void)
 
     unsigned int texture1;
     unsigned int texture2;
+
+    int frag_mix_location;
 
     float vertices[] = {
         /* x      y     z     r     g     b     u     v */
@@ -186,6 +190,9 @@ main(void)
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, texture2);
 
+        frag_mix_location = glGetUniformLocation(sh.ID, "mixAmt");
+        glUniform1f(frag_mix_location, mix_amt);
+
         glBindVertexArray(VAO);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
@@ -213,5 +220,19 @@ process_input(GLFWwindow *window)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
+
+    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
+        mix_amt += 0.005f;
+
+        if (mix_amt > 1.0f)
+            mix_amt = 1.0f;
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
+        mix_amt -= 0.005f;
+
+        if (mix_amt < 0.0f)
+            mix_amt = 0.0f;
+    }
 }
 /* EOF */
