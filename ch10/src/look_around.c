@@ -1,3 +1,4 @@
+#include <cglm/vec3.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,6 +29,30 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height);
  */
 void process_input(GLFWwindow *window);
 
+/**
+ * @brief The function called whenever a mouse event is detected
+ *
+ * @param[in] window The GLFW window
+ * @param[in] x_pos The current cursor horizontal position
+ * @param[in] y_pos The current cursor vertical position
+ */
+void mouse_callback(GLFWwindow *window, double x_pos, double y_pos);
+
+vec3 camera_pos = {0.0f, 0.0f, 3.0f};
+vec3 camera_front = {0.0f, 0.0f, -1.0f};
+vec3 camera_up = {0.0f, 1.0f, 0.0f};
+
+float delta_time = 0.0f;
+float last_frame = 0.0f;
+
+bool first_mouse = true;
+
+float last_x = 400.0f;
+float last_y = 300.0f;
+
+float yaw;
+float pitch;
+
 int
 main(void)
 {
@@ -57,6 +82,13 @@ main(void)
     CGLM_ALIGN_MAT mat4 model = GLM_MAT4_IDENTITY_INIT;
     CGLM_ALIGN_MAT mat4 view = GLM_MAT4_IDENTITY_INIT;
     CGLM_ALIGN_MAT mat4 projection = GLM_MAT4_IDENTITY_INIT;
+
+    vec3 temp = GLM_VEC3_ZERO_INIT;
+
+    unsigned int i;
+    float angle;
+
+    float current_frame;
 
     float vertices[] = {
         /* x      y      z     u     v */
@@ -103,12 +135,25 @@ main(void)
         -0.5f,  0.5f, -0.5f, 0.0f, 1.0f
     };
 
+    float cube_positions[][3] = {
+        { 0.0f,  0.0f,   0.0f},
+        { 2.0f,  5.0f, -15.0f},
+        {-1.5f, -2.2f,  -2.5f},
+        {-3.8f, -2.0f, -12.3f},
+        { 2.4f, -0.4f,  -3.5f},
+        {-1.7f,  3.0f,  -7.5f},
+        { 1.3f, -3.0f,  -2.5f},
+        { 1.5f,  2.0f,  -2.5f},
+        { 1.5f,  0.2f,  -1.5f},
+        {-1.3f,  1.0f,  -1.5f}
+    };
+
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    window = glfwCreateWindow(800, 600, "Z Buffer", NULL, NULL);
+    window = glfwCreateWindow(800, 600, "Look Around", NULL, NULL);
 
     if (window == NULL) {
         fprintf(stderr, "Error: Failed to create GLFW window\n");
@@ -118,6 +163,9 @@ main(void)
 
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetCursorPosCallback(window, mouse_callback);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         fprintf(stderr, "Error: Failed to initialize GLAD\n");
@@ -204,6 +252,10 @@ main(void)
     while (!glfwWindowShouldClose(window)) {
         process_input(window);
 
+        current_frame = glfwGetTime();
+        delta_time = current_frame - last_frame;
+        last_frame = current_frame;
+
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -214,25 +266,34 @@ main(void)
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, texture2);
 
-        glm_mat4_identity(model);
-        glm_rotate(model, (float)glfwGetTime(), (vec3){0.5f, 1.0f, 0.0f});
+        glBindVertexArray(VAO);
+
+        for (i = 0; i < 10; i++) {
+            glm_mat4_identity(model);
+            glm_translate(model, cube_positions[i]);
+
+            angle = 20.0f * i;
+            glm_rotate(model, glm_rad(angle), (vec3){1.0f, 0.3f, 0.5f});
+
+            glUniformMatrix4fv(glGetUniformLocation(sh.ID, "model"), 1,
+                               GL_FALSE, (float *)model);
+
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+        }
 
         glm_mat4_identity(view);
-        glm_translate(view, (vec3){0.0f, 0.0f, -3.0f});
+
+        glm_vec3_add(camera_pos, camera_front, temp);
+        glm_lookat(camera_pos, temp, camera_up, view);
 
         glm_mat4_identity(projection);
         glm_perspective(glm_rad(45.0f), 800.0f / 600.0f, 0.1f, 100.0f,
                         projection);
 
-        glUniformMatrix4fv(glGetUniformLocation(sh.ID, "model"), 1, GL_FALSE,
-                           (float *)model);
         glUniformMatrix4fv(glGetUniformLocation(sh.ID, "view"), 1, GL_FALSE,
                            (float *)view);
         glUniformMatrix4fv(glGetUniformLocation(sh.ID, "projection"), 1,
                            GL_FALSE, (float *)projection);
-
-        glBindVertexArray(VAO);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -255,7 +316,72 @@ framebuffer_size_callback(GLFWwindow *window, int width, int height)
 void
 process_input(GLFWwindow *window)
 {
+    float camera_speed = 2.5f * delta_time;
+
+    vec3 temp = GLM_VEC3_ZERO_INIT;
+
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
+
+    /* camera_pos += camera_front * camera_speed */
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        glm_vec3_muladds(camera_front, camera_speed, camera_pos);
+
+    /* camera_pos += camera_front * -camera_speed */
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        glm_vec3_muladds(camera_front, -camera_speed, camera_pos);
+
+    /* camera_pos += normalize(camera_front x camera_up) * -camera_speed */
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+        glm_cross(camera_front, camera_up, temp);
+        glm_normalize(temp);
+        glm_vec3_muladds(temp, -camera_speed, camera_pos);
+    }
+
+    /* camera_pos += normalize(camera_front x camera_up) * camera_speed */
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+        glm_cross(camera_front, camera_up, temp);
+        glm_normalize(temp);
+        glm_vec3_muladds(temp, camera_speed, camera_pos);
+    }
+}
+
+void
+mouse_callback(GLFWwindow *window, double x_pos, double y_pos)
+{
+    float x_offset;
+    float y_offset;
+
+    const float sensitivity = 0.1f;
+
+    vec3 direction = GLM_VEC3_ZERO_INIT;
+
+    if (first_mouse) {
+        last_x = x_pos;
+        last_y = y_pos;
+        first_mouse = false;
+    }
+
+    x_offset = x_pos - last_x;
+    y_offset = last_y - y_pos;
+    last_x = x_pos;
+    last_y = y_pos;
+
+    x_offset *= sensitivity;
+    y_offset *= sensitivity;
+
+    yaw += x_offset;
+    pitch += y_offset;
+
+    if (pitch > 89.0f)
+        pitch = 89.0f;
+    if (pitch < -89.0f)
+        pitch = -89.0f;
+
+    direction[0] = cos(glm_rad(yaw)) * cos(glm_rad(pitch));
+    direction[1] = sin(glm_rad(pitch));
+    direction[2] = sin(glm_rad(yaw)) * cos(glm_rad(pitch));
+
+    glm_normalize_to(direction, camera_front);
 }
 /* EOF */

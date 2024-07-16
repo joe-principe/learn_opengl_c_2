@@ -53,7 +53,7 @@ main(void)
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    window = glfwCreateWindow(800, 600, "Hello triangle", NULL, NULL);
+    window = glfwCreateWindow(800, 600, "Chapter 6 - Example 2", NULL, NULL);
 
     if (window == NULL) {
         fprintf(stderr, "Error: Failed to create GLFW window\n");

@@ -1,3 +1,4 @@
+#include <cglm/vec3.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,12 +29,18 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height);
  */
 void process_input(GLFWwindow *window);
 
+vec3 camera_pos = {0.0f, 0.0f, 3.0f};
+vec3 camera_front = {0.0f, 0.0f, -1.0f};
+vec3 camera_up = {0.0f, 1.0f, 0.0f};
+
+float delta_time = 0.0f;
+float last_frame = 0.0;
+
 int
 main(void)
 {
     unsigned int VBO;
     unsigned int VAO;
-    unsigned int EBO;
 
     shader sh;
 
@@ -55,23 +62,73 @@ main(void)
     unsigned int texture1;
     unsigned int texture2;
 
-    CGLM_ALIGN_MAT mat4 trans = GLM_MAT4_IDENTITY_INIT;
+    CGLM_ALIGN_MAT mat4 model = GLM_MAT4_IDENTITY_INIT;
+    CGLM_ALIGN_MAT mat4 view = GLM_MAT4_IDENTITY_INIT;
+    CGLM_ALIGN_MAT mat4 projection = GLM_MAT4_IDENTITY_INIT;
 
-    float scale_amount;
-    float h_offset;
-    float v_offset;
+    vec3 temp = GLM_VEC3_ZERO_INIT;
+
+    unsigned int i;
+    float angle;
+
+    float current_frame;
 
     float vertices[] = {
-        /* x      y     z     r     g     b     u     v */
-         0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, /* TR */
-         0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, /* BR */
-        -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, /* BL */
-        -0.5f,  0.5f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f  /* TL */
+        /* x      y      z     u     v */
+        -0.5f, -0.5f, -0.5f, 0.0f, 0.0f,
+         0.5f, -0.5f, -0.5f, 1.0f, 0.0f,
+         0.5f,  0.5f, -0.5f, 1.0f, 1.0f,
+         0.5f,  0.5f, -0.5f, 1.0f, 1.0f,
+        -0.5f,  0.5f, -0.5f, 0.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f, 0.0f, 0.0f,
+
+        -0.5f, -0.5f,  0.5f, 0.0f, 0.0f,
+         0.5f, -0.5f,  0.5f, 1.0f, 0.0f,
+         0.5f,  0.5f,  0.5f, 1.0f, 1.0f,
+         0.5f,  0.5f,  0.5f, 1.0f, 1.0f,
+        -0.5f,  0.5f,  0.5f, 0.0f, 1.0f,
+        -0.5f, -0.5f,  0.5f, 0.0f, 0.0f,
+
+        -0.5f,  0.5f,  0.5f, 1.0f, 0.0f,
+        -0.5f,  0.5f, -0.5f, 1.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+        -0.5f, -0.5f,  0.5f, 0.0f, 0.0f,
+        -0.5f,  0.5f,  0.5f, 1.0f, 0.0f,
+
+         0.5f,  0.5f,  0.5f, 1.0f, 0.0f,
+         0.5f,  0.5f, -0.5f, 1.0f, 1.0f,
+         0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+         0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+         0.5f, -0.5f,  0.5f, 0.0f, 0.0f,
+         0.5f,  0.5f,  0.5f, 1.0f, 0.0f,
+
+        -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+         0.5f, -0.5f, -0.5f, 1.0f, 1.0f,
+         0.5f, -0.5f,  0.5f, 1.0f, 0.0f,
+         0.5f, -0.5f,  0.5f, 1.0f, 0.0f,
+        -0.5f, -0.5f,  0.5f, 0.0f, 0.0f,
+        -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+
+        -0.5f,  0.5f, -0.5f, 0.0f, 1.0f,
+         0.5f,  0.5f, -0.5f, 1.0f, 1.0f,
+         0.5f,  0.5f,  0.5f, 1.0f, 0.0f,
+         0.5f,  0.5f,  0.5f, 1.0f, 0.0f,
+        -0.5f,  0.5f,  0.5f, 0.0f, 0.0f,
+        -0.5f,  0.5f, -0.5f, 0.0f, 1.0f
     };
 
-    unsigned int indices[] = {
-        0, 1, 3,
-        1, 2, 3
+    float cube_positions[][3] = {
+        { 0.0f,  0.0f,   0.0f},
+        { 2.0f,  5.0f, -15.0f},
+        {-1.5f, -2.2f,  -2.5f},
+        {-3.8f, -2.0f, -12.3f},
+        { 2.4f, -0.4f,  -3.5f},
+        {-1.7f,  3.0f,  -7.5f},
+        { 1.3f, -3.0f,  -2.5f},
+        { 1.5f,  2.0f,  -2.5f},
+        { 1.5f,  0.2f,  -1.5f},
+        {-1.3f,  1.0f,  -1.5f}
     };
 
     glfwInit();
@@ -79,7 +136,7 @@ main(void)
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    window = glfwCreateWindow(800, 600, "Chapter 8 - Example 2", NULL, NULL);
+    window = glfwCreateWindow(800, 600, "Move Speed", NULL, NULL);
 
     if (window == NULL) {
         fprintf(stderr, "Error: Failed to create GLFW window\n");
@@ -97,36 +154,27 @@ main(void)
     }
 
     glViewport(0, 0, 800, 600);
+    glEnable(GL_DEPTH_TEST);
 
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
-    glGenBuffers(1, &EBO);
     
     glBindVertexArray(VAO);
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices,
-                 GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
                           (void *)0);
     glEnableVertexAttribArray(0);
 
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
                           (void *)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
-                          (void *)(6 * sizeof(float)));
-    glEnableVertexAttribArray(2);
-
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
-
-    create_shader(&sh, vert_shader_path, frag_shader_path);
 
     glGenTextures(1, &texture1);
     glBindTexture(GL_TEXTURE_2D, texture1);
@@ -176,6 +224,7 @@ main(void)
     stbi_image_free(face_texture_data);
     face_texture_data = NULL;
 
+    create_shader(&sh, vert_shader_path, frag_shader_path);
     glUseProgram(sh.ID);
     glUniform1i(glGetUniformLocation(sh.ID, "texture1"), 0);
     glUniform1i(glGetUniformLocation(sh.ID, "texture2"), 1);
@@ -183,8 +232,12 @@ main(void)
     while (!glfwWindowShouldClose(window)) {
         process_input(window);
 
+        current_frame = glfwGetTime();
+        delta_time = current_frame - last_frame;
+        last_frame = current_frame;
+
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glUseProgram(sh.ID);
 
@@ -195,25 +248,32 @@ main(void)
 
         glBindVertexArray(VAO);
 
-        glm_mat4_identity(trans);
-        glm_translate(trans, (vec3){0.5f, -0.5f, 0.0f});
-        glm_rotate(trans, (float)glfwGetTime(), (vec3){0.0f, 0.0f, 1.0f});
+        for (i = 0; i < 10; i++) {
+            glm_mat4_identity(model);
+            glm_translate(model, cube_positions[i]);
 
-        glUniformMatrix4fv(glGetUniformLocation(sh.ID, "transform"), 1,
-                           GL_FALSE, (float *)trans);
+            angle = 20.0f * i;
+            glm_rotate(model, glm_rad(angle), (vec3){1.0f, 0.3f, 0.5f});
 
+            glUniformMatrix4fv(glGetUniformLocation(sh.ID, "model"), 1,
+                               GL_FALSE, (float *)model);
 
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+        }
 
-        glm_mat4_identity(trans);
-        glm_translate(trans, (vec3){-0.5f, -0.5f, 0.0f});
-        scale_amount = (sin(glfwGetTime()) / 2.0f) + 0.5f;
-        glm_scale(trans, (vec3){scale_amount, scale_amount, scale_amount});
+        glm_mat4_identity(view);
 
-        glUniformMatrix4fv(glGetUniformLocation(sh.ID, "transform"), 1,
-                           GL_FALSE, (float *)trans);
+        glm_vec3_add(camera_pos, camera_front, temp);
+        glm_lookat(camera_pos, temp, camera_up, view);
 
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        glm_mat4_identity(projection);
+        glm_perspective(glm_rad(45.0f), 800.0f / 600.0f, 0.1f, 100.0f,
+                        projection);
+
+        glUniformMatrix4fv(glGetUniformLocation(sh.ID, "view"), 1, GL_FALSE,
+                           (float *)view);
+        glUniformMatrix4fv(glGetUniformLocation(sh.ID, "projection"), 1,
+                           GL_FALSE, (float *)projection);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -221,7 +281,6 @@ main(void)
 
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
-    glDeleteBuffers(1, &EBO);
     glDeleteProgram(sh.ID);
 
     glfwTerminate();
@@ -237,7 +296,33 @@ framebuffer_size_callback(GLFWwindow *window, int width, int height)
 void
 process_input(GLFWwindow *window)
 {
+    float camera_speed = 2.5f * delta_time;
+
+    vec3 temp = GLM_VEC3_ZERO_INIT;
+
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
+
+    /* camera_pos += camera_front * camera_speed */
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        glm_vec3_muladds(camera_front, camera_speed, camera_pos);
+
+    /* camera_pos += camera_front * -camera_speed */
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        glm_vec3_muladds(camera_front, -camera_speed, camera_pos);
+
+    /* camera_pos += normalize(camera_front x camera_up) * -camera_speed */
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+        glm_cross(camera_front, camera_up, temp);
+        glm_normalize(temp);
+        glm_vec3_muladds(temp, -camera_speed, camera_pos);
+    }
+
+    /* camera_pos += normalize(camera_front x camera_up) * camera_speed */
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+        glm_cross(camera_front, camera_up, temp);
+        glm_normalize(temp);
+        glm_vec3_muladds(temp, camera_speed, camera_pos);
+    }
 }
 /* EOF */
