@@ -76,14 +76,14 @@ main(void)
 
     vec3 toy_color = {1.0f, 0.5f, 0.31f};
 
-    shader sh;
+    shader cube_shader;
     shader light_shader;
 
-    const char *vert_shader_path = "shaders/cube_ambient.vert";
-    const char *frag_shader_path = "shaders/cube_ambient.frag";
+    const char *cube_vert_shader_path = "shaders/cube_ex4.vert";
+    const char *cube_frag_shader_path = "shaders/cube_ex4.frag";
 
-    const char *light_vert_shader_path = "shaders/light_ambient.vert";
-    const char *light_frag_shader_path = "shaders/light_ambient.frag";
+    const char *light_vert_shader_path = "shaders/light_ex4.vert";
+    const char *light_frag_shader_path = "shaders/light_ex4.frag";
 
     GLFWwindow *window = NULL;
 
@@ -95,45 +95,63 @@ main(void)
 
     float current_frame;
 
-    /* 
-     * NOTE: All faces are from the camera's perspective looking head-on (eg,
-     * front is directly in front of the camera. Right is camera's right)
-     */
     float vertices[] = {
-        -0.5f, -0.5f, -0.5f, /* 0 - Front bottom left */
-        -0.5f,  0.5f, -0.5f, /* 1 - Front top left */
-         0.5f,  0.5f, -0.5f, /* 2 - Front top right */
-         0.5f, -0.5f, -0.5f, /* 3 - Front bottom right */
-        -0.5f, -0.5f,  0.5f, /* 4 - Back bottom left */
-        -0.5f,  0.5f,  0.5f, /* 5 - Back top left */
-         0.5f,  0.5f,  0.5f, /* 6 - Back top right */
-         0.5f, -0.5f,  0.5f, /* 7 - Back bottom right */
+        /*         Positions              Normals */
+        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f, /* 00 - Front bottom left */
+         0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f, /* 01 - Front bottom right */
+        -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f, /* 02 - Front top left */
+         0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f, /* 03 - Front top right */
+
+        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f, /* 04 - Back bottom left */
+         0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f, /* 05 - Back bottom right */
+        -0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f, /* 06 - Back top left */
+         0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f, /* 07 - Back top right */
+
+        -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f, /* 08 - Left bottom left */
+        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f, /* 09 - Left bottom right */
+        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f, /* 10 - Left top left */
+        -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f, /* 11 - Left top right */
+
+         0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f, /* 12 - Right bottom left */
+         0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f, /* 13 - Right bottom right */
+         0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f, /* 14 - Right top left */
+         0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f, /* 15 - Right top right */
+
+        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f, /* 16 - Top bottom left */
+         0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f, /* 17 - Top bottom right */
+        -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f, /* 18 - Top top left */
+         0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f, /* 19 - Top top right */
+
+         0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f, /* 20 - Bottom bottom left */
+        -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f, /* 21 - Bottom bottom right */
+         0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f, /* 22 - Bottom top left */
+        -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f  /* 23 - Bottom top right */
     };
 
     unsigned int indices[] = {
         /* Front face */
-        0, 1, 2,
-        2, 3, 0,
+        0, 2, 3,
+        3, 1, 0,
 
         /* Back face */
-        4, 5, 6,
-        6, 7, 4,
-
-        /* Right face */
-        3, 2, 6,
-        6, 7, 3,
+        4, 6, 7,
+        7, 5, 4,
 
         /* Left face */
-        4, 5, 1,
-        1, 0, 4,
+        8, 10, 11,
+        11, 9, 8,
+
+        /* Right face */
+        12, 14, 15,
+        15, 13, 12,
 
         /* Top face */
-        1, 5, 6,
-        6, 2, 1,
+        16, 18, 19,
+        19, 17, 16,
 
         /* Bottom face */
-        3, 7, 4,
-        4, 0, 3
+        20, 22, 23,
+        23, 21, 20
     };
 
     glfwInit();
@@ -179,9 +197,12 @@ main(void)
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices,
                  GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float),
                           (void *)0);
     glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float),
+                          (void *)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
 
     glGenVertexArrays(1, &light_vao);
     glBindVertexArray(light_vao);
@@ -189,14 +210,14 @@ main(void)
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float),
                           (void *)0);
     glEnableVertexAttribArray(0);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 
-    create_shader(&sh, vert_shader_path, frag_shader_path);
+    create_shader(&cube_shader, cube_vert_shader_path, cube_frag_shader_path);
     create_shader(&light_shader, light_vert_shader_path,
                   light_frag_shader_path);
 
@@ -207,37 +228,39 @@ main(void)
         delta_time = current_frame - last_frame;
         last_frame = current_frame;
 
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        glUseProgram(sh.ID);
-        glUniform3fv(glGetUniformLocation(sh.ID, "objectColor"), 1,
+        glUseProgram(cube_shader.ID);
+        glUniform3fv(glGetUniformLocation(cube_shader.ID, "objectColor"), 1,
                      (float *)toy_color);
-        glUniform3fv(glGetUniformLocation(sh.ID, "lightColor"), 1,
+        glUniform3fv(glGetUniformLocation(cube_shader.ID, "lightColor"), 1,
                      (float *)light_color);
-
-        glBindVertexArray(vao);
+        glUniform3fv(glGetUniformLocation(cube_shader.ID, "lightPos"), 1,
+                     (float *)light_pos);
+        glUniform3fv(glGetUniformLocation(cube_shader.ID, "viewPos"), 1,
+                     (float *)camera_pos);
 
         glm_mat4_identity(model);
-        glUniformMatrix4fv(glGetUniformLocation(sh.ID, "model"), 1,
+        glUniformMatrix4fv(glGetUniformLocation(cube_shader.ID, "model"), 1,
                            GL_FALSE, (float *)model);
 
         glm_mat4_identity(view);
         glm_vec3_add(camera_pos, camera_front, temp);
         glm_lookat(camera_pos, temp, camera_up, view);
-        glUniformMatrix4fv(glGetUniformLocation(sh.ID, "view"), 1, GL_FALSE,
-                           (float *)view);
+        glUniformMatrix4fv(glGetUniformLocation(cube_shader.ID, "view"), 1,
+                           GL_FALSE, (float *)view);
 
         glm_mat4_identity(projection);
         glm_perspective(glm_rad(fov), 800.0f / 600.0f, 0.1f, 100.0f,
                         projection);
-        glUniformMatrix4fv(glGetUniformLocation(sh.ID, "projection"), 1,
-                           GL_FALSE, (float *)projection);
+        glUniformMatrix4fv(glGetUniformLocation(cube_shader.ID, "projection"),
+                           1, GL_FALSE, (float *)projection);
 
+        glBindVertexArray(vao);
         glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 
         glUseProgram(light_shader.ID);
-        glBindVertexArray(light_vao);
 
         glm_mat4_identity(model);
         glm_translate(model, light_pos);
@@ -251,6 +274,7 @@ main(void)
         glUniformMatrix4fv(glGetUniformLocation(light_shader.ID, "projection"),
                            1, GL_FALSE, (float *)projection);
 
+        glBindVertexArray(light_vao);
         glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 
         glfwSwapBuffers(window);
@@ -258,8 +282,11 @@ main(void)
     }
 
     glDeleteVertexArrays(1, &vao);
+    glDeleteVertexArrays(1, &light_vao);
     glDeleteBuffers(1, &vbo);
-    glDeleteProgram(sh.ID);
+    glDeleteBuffers(1, &ebo);
+    glDeleteProgram(cube_shader.ID);
+    glDeleteProgram(light_shader.ID);
 
     glfwTerminate();
     return 0;
@@ -274,7 +301,14 @@ framebuffer_size_callback(GLFWwindow *window, int width, int height)
 void
 process_input(GLFWwindow *window)
 {
-    float camera_speed = 2.5f * delta_time;
+    float camera_speed;
+
+    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+        camera_speed = 4.5f * delta_time;
+    else if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+        camera_speed = 0.5f * delta_time;
+    else
+        camera_speed = 2.5f * delta_time;
 
     vec3 temp = GLM_VEC3_ZERO_INIT;
 
@@ -308,14 +342,12 @@ process_input(GLFWwindow *window)
     }
 
     /* Moves the camera down */
-    if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
+    if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
         glm_vec3_add(camera_pos, (vec3){0.0f, -camera_speed, 0.0f}, camera_pos);
-    }
 
     /* Moves the camera up */
-    if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
+    if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
         glm_vec3_add(camera_pos, (vec3){0.0f, camera_speed, 0.0f}, camera_pos);
-    }
 }
 
 void
