@@ -3,25 +3,42 @@
 
 CC = gcc
 CFLAGS = -Wall
-LINKER_FLAGS = -lglfw -lGL -lX11 -lpthread -lXrandr -ldl -lm
+LDLIBS = -lglfw -lGL -lX11 -lpthread -lXrandr -ldl -lm
 
-going3d: src/going3d.c src/glad.c src/shader.c
-	$(CC) $^ $(CFLAGS) $(LINKER_FLAGS) -o bin/$@.o
+BIN_DIR = ./bin
+SRC_DIR = ./src
 
-more3d: src/more3d.c src/glad.c src/shader.c
-	$(CC) $^ $(CFLAGS) $(LINKER_FLAGS) -o bin/$@.o
+# TODO: CHANGE THIS FOR EACH CHAPTER
+MY_FILES = cubes going3d more3d zbuf ex1 ex2 ex3
 
-zbuf: src/zbuf.c src/glad.c src/shader.c
-	$(CC) $^ $(CFLAGS) $(LINKER_FLAGS) -o bin/$@.o
+# SOURCES := $(foreach file, $(MY_FILES), $(SRC_DIR)/$(file).c)
+# OUTPUTS := $(foreach file, $(MY_FILES), $(BIN_DIR)/$(file).o)
 
-cubes: src/cubes.c src/glad.c src/shader.c
-	$(CC) $^ $(CFLAGS) $(LINKER_FLAGS) -o bin/$@.o
+REQUIREMENTS = $(SRC_DIR)/glad.c $(SRC_DIR)/shader.c
 
-ex1: src/ex1.c src/glad.c src/shader.c
-	$(CC) $^ $(CFLAGS) $(LINKER_FLAGS) -o bin/$@.o
+optimized: CFLAGS = -Wall -O3
+RM = rm
 
-ex2: src/ex2.c src/glad.c src/shader.c
-	$(CC) $^ $(CFLAGS) $(LINKER_FLAGS) -o bin/$@.o
+# Unoptimized builds for all the files
+.PHONY:all
+.DELETE_ON_ERROR:
+all: $(MY_FILES)
 
-ex3: src/ex3.c src/glad.c src/shader.c
-	$(CC) $^ $(CFLAGS) $(LINKER_FLAGS) -o bin/$@.o
+# -O3 optimized builds for all the files
+.PHONY:optimized
+optimized: $(MY_FILES)
+
+# Unoptimized builds for a specific file in $(MY_FILES)
+$(MY_FILES): $(REQUIREMENTS)
+	$(CC) $^ $(SRC_DIR)/$@.c $(CFLAGS) $(LDLIBS) -o $(BIN_DIR)/$@.o
+
+# Not sure why I did it this way looking back on it. Keeping it for future
+# reference just in case
+# $(MY_FILES): $(REQUIREMENTS) $(SOURCES)
+# 	$(CC) $(REQUIREMENTS) $(filter $(SRC_DIR)/$@.c,$(SOURCES)) $(CFLAGS) \
+# 		$(LDLIBS) -o $(filter $(BIN_DIR)/$@.o,$(OUTPUTS))
+
+# Removes all of the binaries in ./bin
+.PHONY: clean
+clean:
+	$(RM) $(BIN_DIR)/*

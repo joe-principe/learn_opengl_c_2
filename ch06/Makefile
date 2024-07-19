@@ -3,31 +3,42 @@
 
 CC = gcc
 CFLAGS = -Wall
-LIBS = -lglfw -lGL -lX11 -lpthread -lXrandr -ldl -lm
+LDLIBS = -lglfw -lGL -lX11 -lpthread -lXrandr -ldl -lm
 
-ins_outs: src/ins_outs.c glad.c
-	$(CC) $^ $(CFLAGS) $(LIBS) -o bin/$@.o
+BIN_DIR = ./bin
+SRC_DIR = ./src
 
-uniforms: src/uniforms.c glad.c
-	$(CC) $^ $(CFLAGS) $(LIBS) -o bin/$@.o
+# TODO: CHANGE THIS FOR EACH CHAPTER
+MY_FILES = ins_outs more_attributes rff uniforms circ_color circling ex1 ex2 ex3
 
-more_attributes: src/more_attributes.c glad.c
-	$(CC) $^ $(CFLAGS) $(LIBS) -o bin/$@.o
+# SOURCES := $(foreach file, $(MY_FILES), $(SRC_DIR)/$(file).c)
+# OUTPUTS := $(foreach file, $(MY_FILES), $(BIN_DIR)/$(file).o)
 
-rff: src/rff.c glad.c src/shader.c
-	$(CC) $^ $(CFLAGS) $(LIBS) -o bin/$@.o
+REQUIREMENTS = $(SRC_DIR)/glad.c $(SRC_DIR)/shader.c
 
-circling: src/circling.c glad.c src/shader.c
-	$(CC) $^ $(CFLAGS) $(LIBS) -o bin/$@.o
+optimized: CFLAGS = -Wall -O3
+RM = rm
 
-ex1: src/ex1.c glad.c src/shader.c
-	$(CC) $^ $(CFLAGS) $(LIBS) -o bin/$@.o
+# Unoptimized builds for all the files
+.PHONY:all
+.DELETE_ON_ERROR:
+all: $(MY_FILES)
 
-ex2: src/ex2.c glad.c src/shader.c
-	$(CC) $^ $(CFLAGS) $(LIBS) -o bin/$@.o
+# -O3 optimized builds for all the files
+.PHONY:optimized
+optimized: $(MY_FILES)
 
-ex3: src/ex3.c glad.c src/shader.c
-	$(CC) $^ $(CFLAGS) $(LIBS) -o bin/$@.o
+# Unoptimized builds for a specific file in $(MY_FILES)
+$(MY_FILES): $(REQUIREMENTS)
+	$(CC) $^ $(SRC_DIR)/$@.c $(CFLAGS) $(LDLIBS) -o $(BIN_DIR)/$@.o
 
-circ_color: src/circ_color.c glad.c src/shader.c
-	$(CC) $^ $(CFLAGS) $(LIBS) -o bin/$@.o
+# Not sure why I did it this way looking back on it. Keeping it for future
+# reference just in case
+# $(MY_FILES): $(REQUIREMENTS) $(SOURCES)
+# 	$(CC) $(REQUIREMENTS) $(filter $(SRC_DIR)/$@.c,$(SOURCES)) $(CFLAGS) \
+# 		$(LDLIBS) -o $(filter $(BIN_DIR)/$@.o,$(OUTPUTS))
+
+# Removes all of the binaries in ./bin
+.PHONY: clean
+clean:
+	$(RM) $(BIN_DIR)/*
